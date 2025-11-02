@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Submission #{{ submission.id }} — Baggage Sorted{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Submission #{{ submission.id }} — Baggage Sorted</h1>
+    <a class="btn btn-secondary" href="{{ url_for('auth.dashboard') }}">Back to Dashboard</a>
+  </div>
+
+  {% if submission.documents %}
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Original filename</th>
+                <th>Document type</th>
+                <th>Stored path</th>
+                <th>Uploaded at</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in submission.documents %}
+                <tr>
+                  <td>{{ doc.filename }}</td>
+                  <td>{{ doc.document_type }}</td>
+                  <td><code class="text-body">{{ doc.stored_path }}</code></td>
+                  <td>{{ doc.uploaded_at }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">No baggage found for this submission.</div>
+  {% endif %}
+
+  <div class="mt-3">
+    <button class="btn btn-outline-primary" disabled>Run Checks (next feature)</button>
+  </div>
+{% endblock %}

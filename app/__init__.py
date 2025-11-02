@@ -1,103 +1,80 @@
+# app/__init__.py
 from __future__ import annotations
-
-"""
-I keep this module tiny and focused: load .env, read secrets, build a SQLAlchemy
-Engine, and expose a /health check that proves the backend can reach Postgres.
-"""
-
 import os
-from typing import Tuple
 
-from flask import Flask, jsonify, render_template, redirect, url_for, request, flash
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
+from flask import Flask, jsonify, redirect, url_for
+from flask_login import LoginManager, current_user          # session manager helpers
+from sqlalchemy import text                                  # health check query
 from dotenv import load_dotenv
 
-
-def _db_ping(engine: Engine) -> Tuple[bool, str]:
-    """I open a short connection and run SELECT 1 to confirm DB is reachable.
-
-    Returns (ok, message). I keep this separate so /health stays very small.
-    """
-    try:
-        with engine.connect() as conn:
-            # I use a trivial statement that works on PostgreSQL universally.
-            conn.execute(text("SELECT 1"))
-        return True, "up"
-    except Exception as exc:  # I intentionally keep this broad for a health check
-        return False, f"down: {type(exc).__name__}"
+from .models import db, User                                # ORM handle + User model
 
 
 def create_app() -> Flask:
-    """I create the Flask app, load .env, and prepare the DB Engine.
-
-    - I load environment variables here so the app can read DB creds without
-      hardcoding.
-    - I read SECRET_KEY and DATABASE_URL from the environment.
-    - I build a SQLAlchemy 2.x Engine and attach it to the app for reuse.
-    - I register a /health route that pings the DB and returns JSON.
-    """
-
-    # I load environment variables first, so later config reads have values.
+    # Load environment so DATABASE_URL / SECRET_KEY work locally.
     load_dotenv()
 
+    # Create the Flask application instance.
     app = Flask(__name__)
 
-    # I read the secret key from .env; good enough for local dev.
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-later")
+    # Basic configuration
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
 
-    # I read the database URL from .env; this must be a full SQLAlchemy URL.
+    # Read the database URL; fail fast if missing.
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        raise RuntimeError("DATABASE_URL is not set. Add it to your .env file.")
+        raise RuntimeError("DATABASE_URL is not set. Add it to .env")
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # I create a SQLAlchemy Engine (2.x style) instead of using Flask-SQLAlchemy.
-    engine = create_engine(db_url, pool_pre_ping=True, future=True)
+    # I set where uploaded files are stored and a simple upload size guard.
+    app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+    app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
 
-    # I store the engine on the app so other modules can reuse it later.
-    app.engine = engine  # type: ignore[attr-defined]
+    # I ensure the uploads folder exists so the first save doesn't fail.
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+    # Initialize the ORM so models can talk to Postgres.
+    db.init_app(app)
+
+    # Install Flask-Login for session management.
+    login_manager = LoginManager()
+    login_manager.login_view = "auth.login"
+    login_manager.init_app(app)
+
+    @app.get("/__routes")
+    def __routes():
+        # List every registered route so it's easy to verify what loaded.
+        return {"routes": sorted([f"{r.endpoint} -> {r.rule}" for r in app.url_map.iter_rules()])}
+
+    @login_manager.user_loader
+    def load_user(user_id: str):
+        # Tell Flask-Login how to fetch a user by primary key.
+        return User.query.get(int(user_id))
+
+    # ---- Routes -------------------------------------------------------------
 
     @app.get("/health")
-    def health():  # I keep health lightweight and side-effect free.
-        ok, db_status = _db_ping(app.engine)  # type: ignore[attr-defined]
-        payload = {"status": "ok", "db": "up" if ok else "down"}
-        # If DB is unreachable, I still return overall status ok for the app
-        # process, but I use HTTP 500 to signal infra is unhealthy.
-        return jsonify(payload), (200 if ok else 500)
+    def health():
+        # Ping the database; 200 = up, 500 = down.
+        try:
+            db.session.execute(text("SELECT 1"))
+            return jsonify({"status": "ok", "db": "up"}), 200
+        except Exception as exc:
+            return jsonify({"status": "ok", "db": f"down: {type(exc).__name__}"}), 500
 
     @app.get("/")
     def index():
-        # I route the root to the login page so the app serves HTML instead of JSON.
-        return redirect(url_for("login"))
+        if current_user.is_authenticated:
+            return redirect(url_for("auth.dashboard"))
+        return redirect(url_for("auth.login"))
 
-    @app.route("/login", methods=["GET", "POST"])
-    def login():
-        if request.method == "POST":
-            email = request.form.get("email", "").strip()
-            password = request.form.get("password", "")
-            if not email or not password:
-                flash("Please provide email and password.")
-                return render_template("login.html"), 400
-            # TODO: Verify credentials against the database once user storage is wired.
-            return redirect(url_for("dashboard"))
-        return render_template("login.html")
+    # Register the auth blueprint (signup/login/logout/dashboard).
+    from .auth import auth_bp
+    app.register_blueprint(auth_bp)
 
-    @app.route("/signup", methods=["GET", "POST"])
-    def signup():
-        if request.method == "POST":
-            name = request.form.get("name", "").strip()
-            email = request.form.get("email", "").strip()
-            password = request.form.get("password", "")
-            if not name or not email or not password:
-                flash("Please fill out all fields.")
-                return render_template("signup.html"), 400
-            # TODO: Persist new user to the database (hash password, enforce unique email).
-            flash("Account created. Please log in.")
-            return redirect(url_for("login"))
-        return render_template("signup.html")
-
-    @app.get("/dashboard")
-    def dashboard():
-        return render_template("dashboard.html")
+    # Register the uploads blueprint (check-in desk + submissions views).
+    from .uploads import uploads_bp
+    app.register_blueprint(uploads_bp)
 
     return app

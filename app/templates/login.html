@@ -1,24 +1,16 @@
-{% extends 'base.html' %}
-{% block title %}Log In{% endblock %}
+{% extends "base.html" %}
 {% block content %}
-  <h1>Welcome back</h1>
-  <p class="muted">Sign in to continue to your dashboard.</p>
-  <form method="post" action="/login">
-    <div class="row">
-      <div>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required>
-      </div>
-      <div>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
-      </div>
-      <div>
-        <button class="btn" type="submit">Log in</button>
-      </div>
-    </div>
-  </form>
-  <div class="center">
-    <a class="link" href="/signup">Don’t have an account? Sign up</a>
-  </div>
+<div class="row justify-content-center"><div class="col-md-5">
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <h1 class="h4 mb-3 text-center">Sign In</h1>
+    <form method="post">
+      <div class="mb-3"><label class="form-label">Email</label>
+        <input name="email" type="email" class="form-control" placeholder="you@example.com" required></div>
+      <div class="mb-3"><label class="form-label">Password</label>
+        <input name="password" type="password" class="form-control" placeholder="Your password" required></div>
+      <button class="btn btn-primary w-100" type="submit">Sign In</button>
+    </form>
+    <div class="text-center mt-3"><small>New? <a href="{{ url_for('auth.signup') }}">Create an account</a></small></div>
+  </div></div>
+</div></div>
 {% endblock %}

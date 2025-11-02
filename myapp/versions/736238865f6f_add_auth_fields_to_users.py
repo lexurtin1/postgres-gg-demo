@@ -10,22 +10,22 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    # I enter the 'users' table to extend its layout
+    # Alter the 'users' table to extend its layout
     with op.batch_alter_table('users') as batch_op:
-        # I add an email column so each staff member has a unique address
+        # Add an email column so each user has a unique address
         batch_op.add_column(sa.Column('email', sa.String(length=255), nullable=True))
 
-        # I add a password_hash column to store the scrambled version of their badge code (password)
+        # Add a password_hash column to store the hashed password
         batch_op.add_column(sa.Column('password_hash', sa.String(length=255), nullable=True))
 
-        # I add a timestamp so we know when the badge was issued
+        # Add a timestamp so we know when the account was created
         batch_op.add_column(sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False))
 
-        # I make sure no two staff share the same email address
+        # Ensure emails are unique across users
         batch_op.create_unique_constraint('uq_users_email', ['email'])
 
 def downgrade():
-    # I undo the above if we ever roll back this construction
+    # Revert the above changes on downgrade
     with op.batch_alter_table('users') as batch_op:
         batch_op.drop_constraint('uq_users_email', type_='unique')
         batch_op.drop_column('created_at')

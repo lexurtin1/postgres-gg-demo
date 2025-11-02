@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-  <h1>Dashboard</h1>
-  <p class="muted">You are signed in.</p>
-  <a class="link" href="/login">Sign out</a>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Dashboard</h1>
+    <div>
+      <a class="btn btn-primary" href="{{ url_for('uploads.upload_form') }}">Upload KYC Pack</a>
+    </div>
+  </div>
+  <p class="text-muted">Welcome back. Use the button above to head to the check-in desk and upload your documents.</p>
 {% endblock %}

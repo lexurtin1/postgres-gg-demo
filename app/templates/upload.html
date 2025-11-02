@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Check-in Desk — Upload your KYC pack{% endblock %}
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h1 class="h4 mb-3">Check-in Desk — Upload your KYC pack</h1>
+          <p class="text-muted">Select all your files at once — each file is a bag and we’ll add a routing sticker from its filename.</p>
+          <form method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="form-label">Files</label>
+              <input class="form-control" type="file" name="files" multiple>
+              <div class="form-text">Allowed: .pdf, .png, .jpg, .jpeg • Max size: 10 MB total (simple guard)</div>
+            </div>
+            <button class="btn btn-primary" type="submit">Check in Baggage</button>
+            <a class="btn btn-link" href="{{ url_for('auth.dashboard') }}">Back to Dashboard</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
