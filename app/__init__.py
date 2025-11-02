@@ -8,7 +8,7 @@ Engine, and expose a /health check that proves the backend can reach Postgres.
 import os
 from typing import Tuple
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template, redirect, url_for, request, flash
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from dotenv import load_dotenv
@@ -67,11 +67,37 @@ def create_app() -> Flask:
 
     @app.get("/")
     def index():
-        # I provide a simple landing endpoint to avoid confusion if I hit the
-        # root URL; this tells me where the health check lives.
-        return jsonify({
-            "app": "Governance Gateway Demo",
-            "hint": "Use /health to check DB connectivity"
-        }), 200
+        # I route the root to the login page so the app serves HTML instead of JSON.
+        return redirect(url_for("login"))
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if request.method == "POST":
+            email = request.form.get("email", "").strip()
+            password = request.form.get("password", "")
+            if not email or not password:
+                flash("Please provide email and password.")
+                return render_template("login.html"), 400
+            # TODO: Verify credentials against the database once user storage is wired.
+            return redirect(url_for("dashboard"))
+        return render_template("login.html")
+
+    @app.route("/signup", methods=["GET", "POST"])
+    def signup():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            email = request.form.get("email", "").strip()
+            password = request.form.get("password", "")
+            if not name or not email or not password:
+                flash("Please fill out all fields.")
+                return render_template("signup.html"), 400
+            # TODO: Persist new user to the database (hash password, enforce unique email).
+            flash("Account created. Please log in.")
+            return redirect(url_for("login"))
+        return render_template("signup.html")
+
+    @app.get("/dashboard")
+    def dashboard():
+        return render_template("dashboard.html")
 
     return app

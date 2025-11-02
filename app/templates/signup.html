@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Sign Up{% endblock %}
+{% block content %}
+  <h1>Create your account</h1>
+  <p class="muted">It’s quick and only takes a minute.</p>
+  <form method="post" action="/signup">
+    <div class="row">
+      <div>
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" required>
+      </div>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required>
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required>
+      </div>
+      <div>
+        <button class="btn" type="submit">Create account</button>
+      </div>
+    </div>
+  </form>
+  <div class="center">
+    <a class="link" href="/login">Already have an account? Log in</a>
+  </div>
+{% endblock %}
