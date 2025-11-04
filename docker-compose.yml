@@ -1,0 +1,38 @@
+services:
+  web:
+    build: .
+    container_name: gg-web
+    ports:
+      - "5000:5000"
+    # Use local .env for secrets, but override DB to use host's Postgres
+    env_file:
+      - .env
+    environment:
+      # Point to your existing Postgres container published on host:5433
+      - DATABASE_URL=postgresql+psycopg2://gg_user:secret@host.docker.internal:5433/gg-db-dev
+      # Ensure the app binds to all interfaces in the container
+      - HOST=0.0.0.0
+      - PORT=5000
+    volumes:
+      - ./:/app
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+
+# Optional: if you later want Postgres managed by compose instead of the standalone one,
+# add a db service and update DATABASE_URL to use host 'db' and port 5432.
+#  db:
+#    image: postgres:16
+#    container_name: gg-postgres
+#    environment:
+#      - POSTGRES_DB=gg-db-dev
+#      - POSTGRES_USER=gg_user
+#      - POSTGRES_PASSWORD=secret
+#    volumes:
+#      - db_data:/var/lib/postgresql/data
+#    ports:
+#      - "5433:5432"  # optional, only if you want host access too
+#    restart: unless-stopped
+
+#volumes:
+#  db_data:
+

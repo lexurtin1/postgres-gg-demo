@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
-{% block title %}Submission #{{ submission.id }} — Baggage Sorted{% endblock %}
+{% block title %}Submission #{{ submission.id }} — Documents{% endblock %}
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4 mb-0">Submission #{{ submission.id }} — Baggage Sorted</h1>
+    <h1 class="h4 mb-0">Submission #{{ submission.id }} — Documents</h1>
     <a class="btn btn-secondary" href="{{ url_for('auth.dashboard') }}">Back to Dashboard</a>
   </div>
 
@@ -34,10 +34,42 @@
       </div>
     </div>
   {% else %}
-    <div class="alert alert-info">No baggage found for this submission.</div>
+    <div class="alert alert-info">No documents found for this submission.</div>
   {% endif %}
 
-  <div class="mt-3">
-    <button class="btn btn-outline-primary" disabled>Run Checks (next feature)</button>
+  <div class="mt-3 d-flex gap-2 align-items-center">
+    <a class="btn btn-outline-primary" href="{{ url_for('uploads.upload_form') }}">Upload More Documents</a>
+    <form method="post" action="{{ url_for('uploads.route_submission', submission_id=submission.id) }}" class="d-inline">
+      <button class="btn btn-primary" type="submit">Submit for Vendor Checks</button>
+    </form>
   </div>
+
+  {% if vendor_checks %}
+    <div class="card shadow-sm mt-4">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Completed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for check in vendor_checks %}
+                <tr>
+                  <td>{{ check.vendor }}</td>
+                  <td>{{ check.status }}</td>
+                  <td>{{ check.requested_at }}</td>
+                  <td>{{ check.completed_at or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endblock %}

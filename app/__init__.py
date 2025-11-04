@@ -12,7 +12,9 @@ from .models import db, User                                # ORM handle + User 
 
 def create_app() -> Flask:
     # Load environment so DATABASE_URL / SECRET_KEY work locally.
-    load_dotenv()
+    # Load .env and allow it to override any stale values from a parent
+    # reloader process so config changes take effect without a full shell reset.
+    load_dotenv(override=True)
 
     # Create the Flask application instance.
     app = Flask(__name__)
@@ -76,5 +78,9 @@ def create_app() -> Flask:
     # Register the uploads blueprint (check-in desk + submissions views).
     from .uploads import uploads_bp
     app.register_blueprint(uploads_bp)
+
+    # Register ops blueprint for vendor checks/passports API.
+    from .ops import ops_bp
+    app.register_blueprint(ops_bp)
 
     return app

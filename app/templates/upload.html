@@ -1,23 +1,113 @@
 {% extends 'base.html' %}
-{% block title %}Check-in Desk — Upload your KYC pack{% endblock %}
+{% block title %}Document Upload{% endblock %}
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-7">
+  <style>
+    .dropzone {
+      border: 2px dashed #6c757d;
+      border-radius: .5rem;
+      background: #f8f9fa;
+      padding: 2rem;
+      text-align: center;
+      color: #6c757d;
+      cursor: pointer;
+      transition: background .15s ease-in-out, border-color .15s ease-in-out;
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .dropzone.dragover {
+      background: #e9f5ff;
+      border-color: #0d6efd;
+      color: #0d6efd;
+    }
+    .file-list small { color:#6c757d }
+  </style>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h2 class="h5">Required Documents</h2>
+          <p class="text-muted mb-2">Upload the following as applicable:</p>
+          <ul class="mb-0">
+            <li>Passport (prefix filename with <code>passport_</code>)</li>
+            <li>Proof of Address (prefix <code>proof_of_address_</code>)</li>
+            <li>KYB/Company document (prefix <code>kyb_</code>)</li>
+          </ul>
+          <small class="text-muted">File types: PDF, PNG, JPG. Max total size 10 MB.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8">
       <div class="card shadow-sm">
         <div class="card-body p-4">
-          <h1 class="h4 mb-3">Check-in Desk — Upload your KYC pack</h1>
-          <p class="text-muted">Select all your files at once — each file is a bag and we’ll add a routing sticker from its filename.</p>
-          <form method="post" enctype="multipart/form-data">
-            <div class="mb-3">
-              <label class="form-label">Files</label>
-              <input class="form-control" type="file" name="files" multiple>
-              <div class="form-text">Allowed: .pdf, .png, .jpg, .jpeg • Max size: 10 MB total (simple guard)</div>
+          <h1 class="h4 mb-3">Upload Documents</h1>
+
+          <form id="upload-form" method="post" enctype="multipart/form-data">
+            <input id="file-input" class="form-control d-none" type="file" name="files" multiple accept="application/pdf,image/png,image/jpeg">
+
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Drop files here or click to select">
+              <div>
+                <div class="mb-2"><strong>Drag & drop files here</strong></div>
+                <div class="text-muted">or click to choose</div>
+              </div>
             </div>
-            <button class="btn btn-primary" type="submit">Check in Baggage</button>
-            <a class="btn btn-link" href="{{ url_for('auth.dashboard') }}">Back to Dashboard</a>
+
+            <div class="mt-3 file-list" id="file-list" hidden>
+              <div class="mb-1 fw-semibold">Selected files</div>
+              <ul class="list-unstyled mb-0" id="file-items"></ul>
+              <small>Remove a file by reselecting without it.</small>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Upload</button>
+              <a class="btn btn-outline-secondary" href="{{ url_for('auth.dashboard') }}">Back to Dashboard</a>
+            </div>
           </form>
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+    (function() {
+      const dz = document.getElementById('dropzone');
+      const input = document.getElementById('file-input');
+      const list = document.getElementById('file-list');
+      const items = document.getElementById('file-items');
+
+      function updateList(files) {
+        items.innerHTML = '';
+        for (const f of files) {
+          const li = document.createElement('li');
+          li.textContent = `${f.name} (${Math.ceil(f.size/1024)} KB)`;
+          items.appendChild(li);
+        }
+        list.hidden = files.length === 0;
+      }
+
+      dz.addEventListener('click', () => input.click());
+      dz.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+      });
+
+      dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+      dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        const dt = new DataTransfer();
+        // Merge existing selection with dropped files
+        for (const f of input.files) dt.items.add(f);
+        for (const f of e.dataTransfer.files) dt.items.add(f);
+        input.files = dt.files;
+        updateList(input.files);
+      });
+
+      input.addEventListener('change', () => updateList(input.files));
+    })();
+  </script>
 {% endblock %}
