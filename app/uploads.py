@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 from typing import List
 
-from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash, send_file, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
@@ -83,6 +83,17 @@ def upload_post():
         stored_path = os.path.join(upload_folder, stored_name)
         file.save(stored_path)
 
+        # Compute a SHA-256 hash for evidence/audit export.
+        try:
+            import hashlib
+            h = hashlib.sha256()
+            with open(stored_path, 'rb') as fh:
+                for chunk in iter(lambda: fh.read(8192), b''):
+                    h.update(chunk)
+            file_hash = h.hexdigest()
+        except Exception:
+            file_hash = None
+
         doc_type = infer_document_type(original_name)
 
         doc = Document(
@@ -90,6 +101,7 @@ def upload_post():
             filename=original_name,
             stored_path=stored_path,
             document_type=doc_type,
+            hash=file_hash,
         )
         db.session.add(doc)
 
@@ -132,3 +144,20 @@ def route_submission(submission_id: int):
     created, skipped = route_submission_for_checks(submission)
     flash(f'Requested {created} vendor check(s); {skipped} existing.', 'success')
     return redirect(url_for('uploads.submission_detail', submission_id=submission.id))
+
+
+@uploads_bp.route('/documents/<int:doc_id>/download', methods=['GET'])
+@login_required
+def download_document(doc_id: int):
+    """Allow vendors to open documents; applicants can only open their own."""
+    doc = Document.query.get_or_404(doc_id)
+    # Applicants can only access their own documents
+    owner_sub = Submission.query.filter_by(id=doc.submission_id).first()
+    if getattr(current_user, 'user_type', None) == 'vendor':
+        pass  # vendor can access
+    else:
+        if not owner_sub or owner_sub.user_id != current_user.id:
+            abort(403)
+    if not doc.stored_path or not os.path.exists(doc.stored_path):
+        abort(404)
+    return send_file(doc.stored_path, as_attachment=False)

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      <a href="{{ url_for('pages.vendor_dashboard') }}">Dashboard</a>
+      <a class="active" href="{{ url_for('pages.cases_index') }}">Cases</a>
+      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a href="{{ url_for('pages.audit') }}">Audit</a>
+      <a href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+  <section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h4 mb-0">Cases</h1>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Log out</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead><tr><th>Case</th><th>Company</th><th>Docs</th><th>Status</th><th>SLA due</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for c in cases %}
+          <tr>
+            <td>CASE-{{ '%05d'|format(c.id) }}</td>
+            <td>{{ (orgs.get(c.org_id).legal_name if c.org_id and orgs.get(c.org_id) else '—') }}</td>
+            <td>{{ doc_counts.get(c.org_id, 0) }}</td>
+            <td><span class="gg-chip {% if c.status=='pass' %}success{% elif c.status=='fail' %}warn{% elif c.status=='review' %}info{% else %}muted{% endif %}">{{ c.status }}</span></td>
+            <td>{{ c.sla_due_at or '—' }}</td>
+            <td><a class="btn btn-sm btn-primary" href="{{ url_for('pages.case_detail', case_id=c.id) }}">Open</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

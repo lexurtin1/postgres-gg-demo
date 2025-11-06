@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      <a href="{{ url_for('pages.vendor_dashboard') }}">Dashboard</a>
+      <a class="active" href="{{ url_for('pages.cases_index') }}">Cases</a>
+      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a href="{{ url_for('pages.audit') }}">Audit</a>
+      <a href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+  <section class="d-flex flex-column gap-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h1 class="h4 mb-0">Case — {{ org.legal_name if org else '—' }} (CASE-{{ '%05d'|format(case.id) }})</h1>
+      <span class="gg-chip {% if case.status=='pass' %}success{% elif case.status=='fail' %}warn{% elif case.status=='review' %}info{% else %}muted{% endif %}">{{ case.status }}</span>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-7">
+        <div class="gg-card"><div class="gg-card-body">
+          <h2 class="h6">Checks summary</h2>
+          <div class="gg-muted small">Demo summary; wire to VendorChecks/Attestations later.</div>
+        </div></div>
+
+        <div class="gg-card mt-3"><div class="gg-card-body">
+          <h2 class="h6 mb-2">Attestations</h2>
+          <div class="table-responsive"><table class="table table-sm">
+            <thead><tr><th>ID</th><th>Result</th><th>Expires</th></tr></thead>
+            <tbody>
+              {% for a in attestations %}
+              <tr><td>{{ a.id }}</td><td>{{ a.revocation_status }}</td><td>{{ a.valid_until or '—' }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table></div>
+        </div></div>
+      </div>
+      <div class="col-md-5">
+        <div class="gg-card"><div class="gg-card-body">
+          <h2 class="h6">Decision</h2>
+          <form method="post" action="{{ url_for('pages.case_decide', case_id=case.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="btn-group d-flex" role="group">
+              <button class="btn btn-outline-success" name="decision" value="pass" type="submit">Pass</button>
+              <button class="btn btn-outline-secondary" name="decision" value="review" type="submit">Review</button>
+              <button class="btn btn-outline-danger" name="decision" value="fail" type="submit">Fail</button>
+            </div>
+            <input class="form-control mt-2" name="reason" placeholder="Optional reason">
+          </form>
+        </div></div>
+
+        <div class="gg-card mt-3"><div class="gg-card-body">
+          <h2 class="h6">Request info</h2>
+          <form method="post" action="{{ url_for('pages.create_request') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="case_id" value="{{ case.id }}">
+            <div class="mb-2"><input class="form-control" name="reason_code" value="ADDR_MISMATCH"></div>
+            <div class="mb-2"><textarea class="form-control" name="message" rows="2">Please upload a current utility bill dated within 3 months.</textarea></div>
+            <button class="btn btn-primary" type="submit">Send request</button>
+          </form>
+        </div></div>
+
+        <div class="gg-card mt-3"><div class="gg-card-body">
+          <h2 class="h6">Documents</h2>
+          <div class="table-responsive"><table class="table table-sm">
+            <thead><tr><th>ID</th><th>Type</th><th>Name</th><th>Uploaded</th><th>Open</th><th>Decision</th></tr></thead>
+            <tbody>
+              {% for d in documents %}
+              <tr>
+                <td>{{ d.id }}</td>
+                <td>{{ d.document_type }}</td>
+                <td>{{ d.filename }}</td>
+                <td>{{ d.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') if d.uploaded_at else '—' }}</td>
+                <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('uploads.download_document', doc_id=d.id) }}" target="_blank">Open</a></td>
+                <td>
+                  <form method="post" action="{{ url_for('pages.case_doc_decision', case_id=case.id, doc_id=d.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-success btn-sm" name="action" value="approve" type="submit">Approve</button>
+                  </form>
+                  <form method="post" action="{{ url_for('pages.case_doc_decision', case_id=case.id, doc_id=d.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-danger btn-sm" name="action" value="reject" type="submit">Reject</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table></div>
+        </div></div>
+
+        <div class="gg-card mt-3"><div class="gg-card-body">
+          <h2 class="h6">Audit log</h2>
+          <ul class="list-unstyled mb-0 small">
+            {% for e in events %}
+              <li class="mb-1"><span class="text-muted">{{ e.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span> — {{ e.event_type }} ({{ e.correlation_id or '—' }})</li>
+            {% endfor %}
+          </ul>
+          <div class="mt-2"><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('ops.audit_pdf') }}?case_id={{ case.id }}">Download audit PDF</a></div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

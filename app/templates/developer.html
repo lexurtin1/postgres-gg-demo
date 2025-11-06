@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      <a href="{{ url_for('pages.vendor_dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('pages.cases_index') }}">Cases</a>
+      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a href="{{ url_for('pages.audit') }}">Audit</a>
+      <a class="active" href="{{ url_for('pages.developer') }}">Developer</a>
+      <a href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+  <section class="d-flex flex-column gap-3">
+    <div class="gg-card"><div class="gg-card-body">
+      <h1 class="h5 mb-2">Developer — Verify API (Sandbox)</h1>
+      <div class="small gg-muted">Use deterministic fixtures. Never send real personal data.</div>
+    </div></div>
+
+    <div class="row g-3">
+      <div class="col-md-7">
+        <div class="gg-card"><div class="gg-card-body">
+          <h2 class="h6 mb-2">API Explorer — POST /sandbox/verify</h2>
+<pre class="bg-dark text-white p-3 small mb-2">{
+  "applicant_ref": "SBX-ACME-001",
+  "passport_qr": "SBX-QR-VALID-01",
+  "policy_version": "sandbox-1.0"
+}</pre>
+          <form id="exp-form" class="d-flex gap-2 align-items-center">
+            <input class="form-control" name="qr" value="SBX-QR-VALID-01" placeholder="passport_qr value">
+            <button class="btn btn-primary" type="submit">Send request</button>
+          </form>
+          <pre id="exp-out" class="bg-light p-3 small mt-2"></pre>
+        </div></div>
+
+        <div class="gg-card mt-3"><div class="gg-card-body">
+          <h2 class="h6 mb-2">Recent requests</h2>
+          <ul class="small list-unstyled mb-0">
+          {% for e in events %}
+            <li class="mb-1">{{ e.created_at.strftime('%H:%M:%S') }} — sandbox_verify ({{ e.correlation_id or '—' }})</li>
+          {% endfor %}
+          </ul>
+        </div></div>
+      </div>
+      <div class="col-md-5">
+        <div class="gg-card"><div class="gg-card-body">
+          <h2 class="h6 mb-2">Webhook configuration</h2>
+          <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-2">
+              <label class="form-label">Callback URL</label>
+              <input class="form-control" name="callback_url" value="{{ webhook.url if webhook else '' }}" placeholder="https://bank.test/on-verify">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Signing secret</label>
+              <input class="form-control" name="signing_secret" value="{{ webhook.signing_secret if webhook else '' }}">
+            </div>
+            <button class="btn btn-outline-secondary" type="submit">Save</button>
+          </form>
+        </div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function(){
+    const f = document.getElementById('exp-form');
+    const out = document.getElementById('exp-out');
+    f?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const qr = new FormData(f).get('qr') || 'SBX-QR-VALID-01';
+      const res = await fetch('{{ url_for('pages.sandbox_verify') }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicant_ref: 'SBX-ACME-001', passport_qr: String(qr), policy_version: 'sandbox-1.0' })
+      });
+      out.textContent = JSON.stringify(await res.json(), null, 2);
+    });
+  })();
+</script>
+{% endblock %}

@@ -148,3 +148,84 @@ class VerificationRequest(db.Model):
 
     bank = db.relationship('Bank', backref=db.backref('verification_requests', lazy=True))
     passport = db.relationship('CompositePassport', backref=db.backref('verification_requests', lazy=True))
+
+
+# --- Minimal additional models for cases/sandbox/audit ----------------------
+
+class Case(db.Model):
+    __tablename__ = 'cases'
+
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.id'))
+    status = db.Column(db.String(24), default='running', nullable=False)  # running/needs_info/pass/review/fail
+    sla_due_at = db.Column(db.DateTime)
+    risk_flags = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    organisation = db.relationship('Organisation', backref=db.backref('cases', lazy=True))
+
+
+class CaseDecision(db.Model):
+    __tablename__ = 'case_decisions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.id'), nullable=False)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    decision = db.Column(db.String(16), nullable=False)  # pass/review/fail
+    reason = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    case = db.relationship('Case', backref=db.backref('decisions', lazy=True))
+    actor = db.relationship('User')
+
+
+class Request(db.Model):
+    __tablename__ = 'requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.id'))
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.id'))
+    type = db.Column(db.String(50))  # document/info
+    reason_code = db.Column(db.String(50))
+    message = db.Column(db.String(512))
+    status = db.Column(db.String(24), default='open', nullable=False)  # open/closed
+    due_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    case = db.relationship('Case', backref=db.backref('requests', lazy=True))
+
+
+class ApiKey(db.Model):
+    __tablename__ = 'api_keys'
+
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.id'))
+    prefix = db.Column(db.String(16), unique=True, nullable=False)
+    secret = db.Column(db.String(64), nullable=False)  # demo only; store plaintext for sandbox
+    status = db.Column(db.String(16), default='active', nullable=False)  # active/revoked
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class WebhookEndpoint(db.Model):
+    __tablename__ = 'webhook_endpoints'
+
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.String(36), db.ForeignKey('organisations.id'))
+    url = db.Column(db.String(512))
+    signing_secret = db.Column(db.String(64))  # demo only
+    status = db.Column(db.String(16), default='enabled', nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class AuditEvent(db.Model):
+    __tablename__ = 'audit_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    case_id = db.Column(db.Integer, db.ForeignKey('cases.id'))
+    actor_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    event_type = db.Column(db.String(50), nullable=False)
+    data_json = db.Column(db.Text)
+    correlation_id = db.Column(db.String(64))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    case = db.relationship('Case', backref=db.backref('audit_events', lazy=True))

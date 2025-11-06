@@ -5,11 +5,19 @@
 <div class="gg-shell">
   <aside class="gg-sidebar">
     <nav class="gg-nav">
-      <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('uploads.upload_form') }}">Documents</a>
-      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
-      <a href="{{ url_for('pages.audit') }}">Audit</a>
-      <a class="active" href="{{ url_for('pages.settings') }}">Settings</a>
+      {% if current_user.user_type == 'vendor' %}
+        <a href="{{ url_for('pages.cases_index') }}">Dashboard</a>
+        <a href="{{ url_for('pages.cases_index') }}">Cases</a>
+        <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+        <a href="{{ url_for('pages.audit') }}">Audit</a>
+        <a class="active" href="{{ url_for('pages.settings') }}">Settings</a>
+      {% else %}
+        <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('uploads.upload_form') }}">Documents</a>
+        <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+        <a href="{{ url_for('pages.audit') }}">Audit</a>
+        <a class="active" href="{{ url_for('pages.settings') }}">Settings</a>
+      {% endif %}
       <hr>
       <a href="{{ url_for('auth.logout') }}">Log out</a>
     </nav>

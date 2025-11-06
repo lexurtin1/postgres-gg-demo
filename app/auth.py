@@ -37,7 +37,7 @@ def signup():
             username=candidate,
             email=email,
             password_hash=generate_password_hash(password),
-            user_type="user",
+            user_type=form.role.data or "applicant",  # set role from form (applicant/vendor)
         )
         db.session.add(user)
         db.session.commit()
@@ -60,6 +60,13 @@ def login():
         if user and user.password_hash and check_password_hash(user.password_hash, password):
             login_user(user, remember=True)
             flash("Logged in successfully.", "success")
+            # If the account is vendor, land on Cases; otherwise dashboard.
+            desired = (form.role.data or '').lower()
+            if user.user_type == 'vendor':
+                return redirect(url_for("pages.cases_index"))
+            # If user asked for vendor but account is applicant, warn and send to applicant dashboard.
+            if desired == 'vendor' and user.user_type != 'vendor':
+                flash("This account is not a vendor. Showing applicant dashboard.", "warning")
             return redirect(url_for("auth.dashboard"))
         flash("Invalid credentials. Please try again.", "danger")
 
@@ -75,6 +82,9 @@ def logout():
 @auth_bp.route("/dashboard")
 @login_required
 def dashboard():
+    # Redirect vendors to their cases workspace instead of applicant dashboard.
+    if getattr(current_user, 'user_type', None) == 'vendor':
+        return redirect(url_for('pages.cases_index'))
     # I compute live document status for the current user so the UI can show
     # progress and what's missing (Company certificate, UBO, Proof of address).
     required_types = ["kyb", "ubo_declaration", "proof_of_address"]

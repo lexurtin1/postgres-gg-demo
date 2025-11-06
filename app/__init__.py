@@ -103,4 +103,30 @@ def create_app() -> Flask:
     app.register_blueprint(pages_bp)
     # I wire audit/attestations/settings pages for the prototype navigation.
 
+    # Dynamic topbar badge showing actor label (vendor name or applicant org).
+    @app.context_processor
+    def inject_actor_label():
+        def current_actor_label():
+            try:
+                from .models import Organisation
+                if not current_user.is_authenticated:
+                    return None
+                # Vendor label by email mapping (demo), else generic
+                if getattr(current_user, 'user_type', None) == 'vendor':
+                    mapping = {
+                        'vendor@example.com': 'Refinitiv',
+                        'vendor2@example.com': 'KYBService',
+                    }
+                    email = (getattr(current_user, 'email', '') or '').lower()
+                    return mapping.get(email, 'Bank Compliance Officer')
+                # Applicant label = their organisation name if set
+                org_name = None
+                if getattr(current_user, 'org_id', None):
+                    org = Organisation.query.filter_by(id=current_user.org_id).first()
+                    org_name = getattr(org, 'legal_name', None)
+                return org_name or 'SME Applicant'
+            except Exception:
+                return 'SME Applicant'
+        return dict(current_actor_label=current_actor_label)
+
     return app

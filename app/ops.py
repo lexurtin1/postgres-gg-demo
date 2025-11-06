@@ -150,3 +150,75 @@ def passport_pdf():
     resp.headers["Content-Type"] = "application/pdf"
     resp.headers["Content-Disposition"] = "attachment; filename=Composite_Passport.pdf"
     return resp
+
+
+@ops_bp.get("/audit.pdf")
+@login_required
+def audit_pdf():
+    """Generate a minimal audit PDF (hashes only) for a case.
+
+    I include event timestamps and any document hashes found for the user/org.
+    """
+    try:
+        from io import BytesIO
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.units import mm
+    except Exception as exc:  # pragma: no cover
+        return jsonify({"error": f"PDF generation dependency missing: {exc}"}), 500
+
+    from .models import AuditEvent, Submission, Document
+    from datetime import datetime
+    case_id = request.args.get('case_id', type=int)
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(20*mm, height-20*mm, f"Audit report (hashes only)")
+    c.setFont("Helvetica", 10)
+    c.drawString(20*mm, height-27*mm, f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+    if case_id:
+        c.drawString(20*mm, height-32*mm, f"Case ID: {case_id}")
+
+    y = height - 42*mm
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(20*mm, y, "Events")
+    y -= 6*mm
+    c.setFont("Helvetica", 9)
+    for ev in AuditEvent.query.order_by(AuditEvent.created_at.asc()).limit(50):
+        line = f"{ev.created_at.strftime('%Y-%m-%d %H:%M:%S')}  {ev.event_type}  {ev.correlation_id or ''}"
+        c.drawString(20*mm, y, line[:100])
+        y -= 5*mm
+        if y < 30*mm:
+            c.showPage(); y = height - 20*mm
+
+    if y < 40*mm:
+        c.showPage(); y = height - 20*mm
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(20*mm, y, "Document hashes")
+    y -= 6*mm
+    c.setFont("Helvetica", 9)
+    docs = (
+        Document.query.join(Submission, Submission.id == Document.submission_id)
+        .filter(Submission.user_id == current_user.id)
+        .order_by(Document.uploaded_at.asc())
+        .limit(50)
+        .all()
+    )
+    for d in docs:
+        hash_display = (d.hash or '-')[:64]
+        line = f"{d.id}: {d.document_type}  sha256={hash_display}"
+        c.drawString(20*mm, y, line[:110])
+        y -= 5*mm
+        if y < 30*mm:
+            c.showPage(); y = height - 20*mm
+
+    c.showPage()
+    c.save()
+    pdf_bytes = buf.getvalue(); buf.close()
+    resp = make_response(pdf_bytes)
+    resp.headers["Content-Type"] = "application/pdf"
+    resp.headers["Content-Disposition"] = "attachment; filename=Audit_Report.pdf"
+    return resp
