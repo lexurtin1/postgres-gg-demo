@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Document Upload{% endblock %}
 {% block content %}
+{# I provide a drag-and-drop multi-file upload UI to streamline onboarding. #}
   <style>
     .dropzone {
       border: 2px dashed #6c757d;
@@ -30,13 +31,13 @@
       <div class="card shadow-sm h-100">
         <div class="card-body">
           <h2 class="h5">Required Documents</h2>
-          <p class="text-muted mb-2">Upload the following as applicable:</p>
+          <p class="text-muted mb-2">Please upload these documents:</p>
           <ul class="mb-0">
-            <li>Passport (prefix filename with <code>passport_</code>)</li>
-            <li>Proof of Address (prefix <code>proof_of_address_</code>)</li>
-            <li>KYB/Company document (prefix <code>kyb_</code>)</li>
+            <li>Company certificate (prefix <code>kyb_</code>)</li>
+            <li>UBO declaration (prefix <code>ubo_declaration_</code>)</li>
+            <li>Proof of address (prefix <code>proof_of_address_</code>)</li>
           </ul>
-          <small class="text-muted">File types: PDF, PNG, JPG. Max total size 10 MB.</small>
+          <small class="text-muted">File types: PDF, PNG, JPG. Max 10 MB each.</small>
         </div>
       </div>
     </div>
@@ -47,6 +48,7 @@
           <h1 class="h4 mb-3">Upload Documents</h1>
 
           <form id="upload-form" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input id="file-input" class="form-control d-none" type="file" name="files" multiple accept="application/pdf,image/png,image/jpeg">
 
             <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Drop files here or click to select">

@@ -1,13 +1,14 @@
 """
 Document upload blueprint.
 
-This module provides a simple multi-file upload flow:
-- Display an upload form where a user can select multiple files
-- Create a Submission row when the form is posted
-- Save each file to the configured uploads folder with a safe unique name
-- Infer a basic document type from the filename
-- Create a Document row for each saved file
-- Show a summary page per submission
+I implement a simple, auditable multi-file upload flow so an applicant can
+check in their KYC pack and I can route follow‑up checks:
+- I render an upload form that accepts multiple files
+- I create a Submission row to group the files and tie it to the user
+- I save each file to disk with a safe unique name under UPLOAD_FOLDER
+- I infer a coarse document_type from the filename prefix to drive checks
+- I create a Document row per file to keep a durable index
+- I render a submission detail page that can trigger vendor checks
 """
 
 from __future__ import annotations
@@ -25,21 +26,23 @@ from .services.naming import infer_document_type
 
 
 uploads_bp = Blueprint('uploads', __name__, template_folder='templates')
+# I keep uploads on their own blueprint to make wiring and tests cleaner.
 
 
 # Allowed file extensions for document uploads
 ALLOWED_EXTENSIONS = {'.pdf', '.png', '.jpg', '.jpeg'}
+# I restrict extensions to common document/image types to avoid surprises.
 
 
 def _ensure_upload_folder_exists() -> str:
-    """Ensure the uploads folder exists and return its path."""
+    """I ensure the uploads folder exists and return its path to save files."""
     folder = current_app.config['UPLOAD_FOLDER']
     os.makedirs(folder, exist_ok=True)
     return folder
 
 
 def _allowed_file(filename: str) -> bool:
-    """Check the file extension against the allow-list."""
+    """I check the file extension against the allow‑list for a quick guard."""
     ext = os.path.splitext(filename)[1].lower()
     return ext in ALLOWED_EXTENSIONS
 
@@ -47,12 +50,15 @@ def _allowed_file(filename: str) -> bool:
 @uploads_bp.route('/upload', methods=['GET'])
 @login_required
 def upload_form():
+    # I render the upload UI with drag‑and‑drop so the flow feels modern.
     return render_template('upload.html')
 
 
 @uploads_bp.route('/upload', methods=['POST'])
 @login_required
 def upload_post():
+    # I accept multiple files, validate extensions, and persist them atomically
+    # under a Submission so the user has a single reference for the batch.
     files = request.files.getlist('files')
     files = [f for f in files if f and f.filename]
     if not files:
@@ -95,6 +101,8 @@ def upload_post():
 @uploads_bp.route('/submissions/<int:submission_id>', methods=['GET'])
 @login_required
 def submission_detail(submission_id: int):
+    # I show the uploaded files and any vendor checks already associated with
+    # the user’s organisation so the applicant can see progress.
     submission = Submission.query.filter_by(id=submission_id, user_id=current_user.id).first()
     if not submission:
         flash('Submission not found.', 'danger')
@@ -109,6 +117,8 @@ def submission_detail(submission_id: int):
 @uploads_bp.route('/submissions/<int:submission_id>/route', methods=['POST'])
 @login_required
 def route_submission(submission_id: int):
+    # I create vendor checks based on the types present in this submission so
+    # the pipeline can move forward without manual back‑office work.
     submission = Submission.query.filter_by(id=submission_id, user_id=current_user.id).first()
     if not submission:
         flash('Submission not found.', 'danger')

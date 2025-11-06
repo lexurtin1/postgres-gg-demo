@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+{# I render a lightweight audit activity feed from recent user/org actions. #}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('uploads.upload_form') }}">Documents</a>
+      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a class="active" href="{{ url_for('pages.audit') }}">Audit</a>
+      <a href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+  <section>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h1 class="h4 mb-0">Audit Activity</h1>
+      <span class="gg-chip info">{{ events|length }} events</span>
+    </div>
+    {% if events %}
+      <ul class="list-group">
+        {% for e in events %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <span class="badge bg-secondary me-2">{{ e.kind }}</span>
+              {{ e.summary }}
+            </div>
+            <small class="text-muted">{{ e.when.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-light border">No activity yet.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

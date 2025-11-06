@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+{# I stub the attestations page clearly so stakeholders see what’s planned. #}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('uploads.upload_form') }}">Documents</a>
+      <a class="active" href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a href="{{ url_for('pages.audit') }}">Audit</a>
+      <a href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+  <section>
+    <h1 class="h4">Attestations</h1>
+    <div class="alert alert-info">Coming soon in an upcoming iteration.</div>
+    <p class="gg-muted">We’re building the attestations experience now.</p>
+  </section>
+</div>
+{% endblock %}

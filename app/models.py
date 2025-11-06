@@ -4,6 +4,9 @@ from flask_sqlalchemy import SQLAlchemy          # table definitions and session
 from flask_login import UserMixin                # login helpers for the User model
 from datetime import datetime                    # creation timestamp
 
+"""I define my database schema here using SQLAlchemy models so I can keep
+application logic clean and let the ORM handle persistence concerns."""
+
 db = SQLAlchemy()                                # shared DB handle
 
 class User(UserMixin, db.Model):

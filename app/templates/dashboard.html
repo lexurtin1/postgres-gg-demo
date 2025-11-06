@@ -1,11 +1,136 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="p-4 bg-white shadow-sm rounded">
-  <h1 class="h4 mb-2">Dashboard</h1>
-  <p class="text-muted">Welcome. Use the actions below to continue.</p>
-  <div class="d-flex gap-2">
-    <a class="btn btn-primary" href="{{ url_for('uploads.upload_form') }}">Upload Documents</a>
-    <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Log out</a>
-  </div>
+{# I render the applicant's dashboard where I surface onboarding progress,
+   required documents, a (demo) composite passport card, and open requests. #}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      {# I keep the nav consistent across pages and wire to real routes. #}
+      <a class="active" href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('uploads.upload_form') }}">Documents</a>
+      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a href="{{ url_for('pages.audit') }}">Audit</a>
+      <a href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+
+  <section class="d-flex flex-column gap-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h1 class="h4 mb-1">Onboarding — ACME Manufacturing Ltd</h1>
+        <div class="gg-muted">Upload your KYC pack, track progress, and download your Composite Passport when verification completes.</div>
+      </div>
+      <div class="text-end gg-muted small">APP-2025-001 • ACME Manufacturing Ltd</div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="gg-card"><div class="gg-card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="gg-muted">Onboarding progress</div>
+            <div class="gg-chip info">{{ progress_percent }}% complete</div>
+          </div>
+          <div class="gg-progress"><span style="width: {{ progress_percent }}%"></span></div>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="gg-card"><div class="gg-card-body gg-stat">
+          <div class="value">{{ outstanding }}</div>
+          <div>
+            <div class="fw-semibold">{{ outstanding }} outstanding item{{ 's' if outstanding!=1 else '' }}</div>
+            <div class="gg-muted small">Open requests</div>
+          </div>
+        </div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="gg-card"><div class="gg-card-body gg-stat">
+          <div class="value">2–3 days</div>
+          <div class="gg-muted small">Estimated completion</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="gg-card">
+          <div class="gg-card-body">
+            <h2 class="h5 mb-3">Upload your documents</h2>
+            <div class="gg-muted small mb-3">Accepted: PDF, PNG, JPG (max 10MB each)</div>
+
+            <div class="d-grid gap-2">
+              {% for key, item in status.items() %}
+                {% set state = item.state %}
+                <div class="p-3 border rounded-3">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div class="fw-semibold">{{ item.label }}</div>
+                    <span class="gg-chip {{ 'muted' if state=='Uploaded' else ('warn' if state=='Expired' else '') }}">{{ state }}</span>
+                  </div>
+                  {# I show an upload action for any missing/expired document. #}
+                  {% if state != 'Uploaded' %}
+                    <div class="gg-muted small mt-1">Upload the missing document to continue.</div>
+                    <div class="mt-2">
+                      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('uploads.upload_form') }}">Upload</a>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+          </div>
+        </div>
+
+        <div class="gg-card mt-3">
+          <div class="gg-card-body">
+            <h2 class="h6 mb-3">Verification timeline</h2>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2"><span class="gg-chip muted me-2">Submitted</span> Pack submitted</li>
+              <li class="mb-2"><span class="gg-chip info me-2">In progress</span> Vendor checks running</li>
+              <li class="mb-0"><span class="gg-chip warn me-2">Needs info</span> Request raised: Proof of address</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="gg-card">
+          <div class="gg-card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h2 class="h5 mb-0">Composite Passport</h2>
+              <span class="gg-chip success">PASS</span>
+            </div>
+            <div class="gg-muted small mb-1">Bronze – QR/PDF • Passport ID: PASS-00019 • Expires: 2026-01-31</div>
+            <div class="text-warning small mb-3">Not functional in this iteration — example only.</div>
+            <div class="rounded" style="width:120px;height:120px;background:repeating-linear-gradient(90deg,#000 0 10px,#fff 10px 20px);"></div>
+            <div class="gg-muted small mt-2">QR value: SBX-QR-VALID-01</div>
+            <div class="mt-3 d-flex gap-2">
+              <a class="btn btn-primary" href="{{ url_for('ops.passport_pdf') }}">Download Example PDF</a>
+              <a class="btn btn-outline-secondary disabled" href="#" aria-disabled="true" title="Coming soon">Share link</a>
+            </div>
+          </div>
+        </div>
+
+            <div class="gg-card mt-3">
+              <div class="gg-card-body">
+                <h2 class="h6 mb-3">Open requests (1)</h2>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead><tr><th>Type</th><th>Reason</th><th>Due</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Proof of address</td>
+                    <td>ADDR_MISMATCH</td>
+                    <td>2025-10-08</td>
+                    <td><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('uploads.upload_form') }}">Upload new PDF</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}

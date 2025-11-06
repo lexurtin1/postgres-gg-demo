@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+{# I implement simple working settings (without a DB migration) to demonstrate
+   a real form flow and persistence for the prototype. #}
+<div class="gg-shell">
+  <aside class="gg-sidebar">
+    <nav class="gg-nav">
+      <a href="{{ url_for('auth.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('uploads.upload_form') }}">Documents</a>
+      <a href="{{ url_for('pages.attestations') }}">Attestations / Passport</a>
+      <a href="{{ url_for('pages.audit') }}">Audit</a>
+      <a class="active" href="{{ url_for('pages.settings') }}">Settings</a>
+      <hr>
+      <a href="{{ url_for('auth.logout') }}">Log out</a>
+    </nav>
+  </aside>
+  <section class="d-flex flex-column gap-3">
+    <div>
+      <h1 class="h4 mb-1">Settings</h1>
+      <div class="gg-muted">Personalize your experience for this prototype.</div>
+    </div>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="gg-card">
+        <div class="gg-card-body">
+          <div class="mb-3">
+            <label class="form-label">Display name</label>
+            <input name="display_name" class="form-control" value="{{ settings.get('display_name','') }}" placeholder="e.g., Alex C.">
+            <div class="form-text">Used in the UI only (not stored in DB).</div>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" {% if settings.get('email_notifications') %}checked{% endif %}>
+            <label class="form-check-label" for="email_notifications">Email notifications</label>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="dark_mode" name="dark_mode" {% if settings.get('dark_mode') %}checked{% endif %}>
+            <label class="form-check-label" for="dark_mode">Dark mode</label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit">Save changes</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('auth.dashboard') }}">Back to Dashboard</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}
